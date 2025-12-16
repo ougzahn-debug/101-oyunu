@@ -57,7 +57,7 @@ def play_sound():
             st.markdown(md, unsafe_allow_html=True)
     except: pass
 
-# --- OYUN MANTIĞI ---
+# --- OYUN FONKSİYONLARI ---
 def make_move(number, player_name):
     store.clicked.add(number)
     hit_index = None
@@ -84,32 +84,40 @@ def make_move(number, player_name):
             next_idx = (next_idx + 1) % len(store.players)
         store.turn_index = next_idx
 
-# --- CSS (iPHONE VE MOBİL DÜZELTMESİ) ---
+# --- CSS (MOBİL ZORLAMA MODU) ---
 st.markdown("""
     <style>
-    /* 1. GENEL AYARLAR */
+    /* 1. GENEL ARKAPLAN */
     .stApp { background-color: #ECE5DD; }
     
-    /* 2. SÜTUNLARI YAN YANA ZORLA (Alt alta inmeyi engeller) */
-    [data-testid="column"] {
-        width: calc(25% - 1rem) !important;
-        flex: 1 1 calc(25% - 1rem) !important;
-        min-width: 0px !important; /* KİLİT NOKTA: Bu olmazsa Streamlit aşağı atar */
+    /* 2. SÜTUNLARI YAN YANA ZORLA (EN ÖNEMLİ KISIM) */
+    /* Streamlit'in mobil modda sütunları alt alta atmasını engeller */
+    [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important; 
+        flex-wrap: nowrap !important;
     }
     
+    /* Sütunların küçülmesine izin ver */
+    [data-testid="column"] {
+        flex: 1 !important;
+        width: auto !important;
+        min-width: 0px !important;
+        padding: 0px 2px !important; /* Sütunlar birbirine yaklaşsın */
+    }
+
     /* 3. BUTON TASARIMI (KARE) */
     div.stButton > button {
         background-color: #FFFFFF;
         color: #121212;
-        border-radius: 8px;
+        border-radius: 6px;
         border: 1px solid #ddd;
-        border-bottom: 3px solid #bbb;
-        font-weight: 900;
-        font-size: 18px;
+        border-bottom: 3px solid #999;
+        font-weight: 800;
+        font-size: 16px; /* Mobilde çok büyük olmasın */
         width: 100%;
         padding: 0;
-        aspect-ratio: 1 / 1; /* Tam kare olması için */
-        margin: 2px 0px; /* Birbirlerine yakın olsunlar */
+        aspect-ratio: 1 / 1; /* KARE OLSUN */
+        margin: 0px; 
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
     div.stButton > button:active {
@@ -117,26 +125,27 @@ st.markdown("""
         transform: translateY(3px);
     }
     
-    /* 4. GEREKSİZ BOŞLUKLARI AL */
+    /* 4. SAYFA KENAR BOŞLUKLARI */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 5rem !important;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
+        padding-top: 1rem !important;
+        padding-bottom: 6rem !important; /* Manage app butonu üstüne gelmesin */
+        padding-left: 0.2rem !important;
+        padding-right: 0.2rem !important;
     }
     
     /* 5. OYUNCU KARTLARI */
     .player-card {
-        background-color: white; padding: 5px; border-radius: 5px;
-        text-align: center; margin-bottom: 5px; font-size: 12px;
-        color: #333; border-left: 4px solid #ccc;
+        background-color: white; padding: 4px; border-radius: 4px;
+        text-align: center; margin-bottom: 5px; font-size: 11px;
+        color: #333; border-left: 3px solid #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .active-turn { background-color: #dcf8c6; border-left: 4px solid #25D366; }
-    .eliminated { background-color: #ffe6e6; border-left: 4px solid #ff3b30; text-decoration: line-through; opacity: 0.6; }
+    .active-turn { background-color: #dcf8c6; border-left: 3px solid #25D366; font-weight: bold;}
+    .eliminated { background-color: #ffe6e6; border-left: 3px solid #ff3b30; text-decoration: line-through; opacity: 0.6; }
     
     /* GİZLEME */
     header {visibility: hidden;}
     footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -146,14 +155,15 @@ st.markdown("""
 
 if not store.active:
     # --- LOBİ ---
-    st.markdown("<h2 style='text-align: center; color: #075E54; margin:0;'>💣 101 Lobi</h2>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #075E54; margin:0;'>💣 101 Lobi</h3>", unsafe_allow_html=True)
     
     if len(store.players) == 0:
         store.max_num = st.number_input("Limit", 10, 200, 101)
     
-    # Mobilde form düzgün görünsün diye burada st.columns kullanmıyoruz
-    join_name = st.text_input("İsim", placeholder="Adın ne?")
-    join_num = st.number_input("Gizli Sayı", 1, store.max_num, step=1)
+    # Mobilde form yan yana sığsın
+    c1, c2 = st.columns([2, 1])
+    join_name = c1.text_input("İsim", placeholder="Adın?")
+    join_num = c2.number_input("Sayı", 1, store.max_num, step=1)
     
     if st.button("KATIL", type="primary", use_container_width=True):
         err = store.add_player(join_name, int(join_num))
@@ -161,17 +171,17 @@ if not store.active:
         else: st.rerun()
 
     st.write("---")
-    st.caption(f"Bekleyenler: {len(store.players)} Kişi")
     
+    # Bekleyenler (Yan yana 3 kişi sığdır)
     if store.players:
-        cols = st.columns(2)
+        cols = st.columns(3)
         for i, p in enumerate(store.players):
-            with cols[i % 2]:
-                st.markdown(f"<div class='player-card' style='border-left: 4px solid #128C7E;'>👤 {p['name']}</div>", unsafe_allow_html=True)
+            with cols[i % 3]:
+                st.markdown(f"<div class='player-card' style='border-left: 3px solid #128C7E;'>{p['name']}</div>", unsafe_allow_html=True)
 
     if len(store.players) >= 2:
         st.write("")
-        if st.button("OYUNU BAŞLAT 🚀", type="primary", use_container_width=True):
+        if st.button("BAŞLAT 🚀", type="primary", use_container_width=True):
             store.active = True
             store.logs.append("Oyun Başladı!")
             st.rerun()
@@ -189,8 +199,7 @@ else:
         st.balloons()
         st.markdown(f"""
         <div style="background-color: #075E54; color: white; padding: 20px; border-radius: 15px; text-align: center; margin-top: 20px;">
-            <h1 style="color:white; font-size: 2rem; margin:0;">KAYBEDEN</h1>
-            <h2 style="color:#FFD700; font-size: 2.5rem; margin:10px 0;">{store.loser}</h2>
+            <h2 style="color:#FFD700; margin:0;">{store.loser}</h2>
             <p>Hesaplar Onda!</p>
         </div>
         """, unsafe_allow_html=True)
@@ -204,33 +213,30 @@ else:
         my_identity = st.selectbox("Ben Kimim?", ["Seçiniz..."] + player_names, label_visibility="collapsed")
         
         if my_identity == "Seçiniz...":
-            st.warning("👆 Önce yukarıdan ismini seç!")
+            st.warning("👆 İsmini seç!")
             st.stop()
             
         current_player_name = store.players[store.turn_index]['name']
         
         # SIRA BİLGİSİ
         if my_identity == current_player_name:
-            st.success(f"SIRA SENDE! BİR KUTU SEÇ.")
+            st.success(f"🟢 SIRA SENDE!")
         else:
-            st.info(f"SIRA: {current_player_name}")
+            st.info(f"⏳ {current_player_name}")
 
-        # OYUNCU KARTLARI (2 Sütun)
-        p_cols = st.columns(2)
+        # OYUNCU KARTLARI (3 Sütun - Mobilde daha iyi sığar)
+        p_cols = st.columns(3)
         for i, p in enumerate(store.players):
             css = "player-card"
             if p['status'] == 'eliminated': css += " eliminated"
             elif i == store.turn_index: css += " active-turn"
-            with p_cols[i % 2]:
+            with p_cols[i % 3]:
                 st.markdown(f"<div class='{css}'>{p['name']}</div>", unsafe_allow_html=True)
 
-        if store.logs:
-            st.caption(f"Son: {store.logs[-1]}")
-        
         st.write("---")
 
-        # SAYI TABLOSU (ZORLANMIŞ 4 SÜTUN)
-        # CSS ile min-width: 0 yaptığımız için burası artık mobilde patlamaz.
+        # SAYI TABLOSU (SABİT 4 SÜTUN)
+        # CSS ile zorladığımız için artık yan yana duracaklar
         GRID_COLS = 4
         btn_cols = st.columns(GRID_COLS)
         
@@ -243,11 +249,11 @@ else:
                 if owner:
                     col.error("💥")
                 else:
-                    # Boşluğu koru
-                    col.markdown("<div style='height: 45px'></div>", unsafe_allow_html=True)
+                    # Boşluğu koru (Görünmez kutu)
+                    col.markdown("<div style='height: 40px'></div>", unsafe_allow_html=True)
             else:
                 is_my_turn = (my_identity == current_player_name)
-                # Key'i string yaparak benzersizleştiriyoruz
+                # Buton
                 if col.button(str(i), key=f"btn_{i}", disabled=not is_my_turn):
                     make_move(i, my_identity)
                     st.rerun()
