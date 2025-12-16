@@ -3,11 +3,15 @@ import base64
 import time
 from streamlit_autorefresh import st_autorefresh
 
-# --- SAYFA AYARLARI ---
-st.set_page_config(page_title="101 - Online", page_icon="💣", layout="centered")
+# --- SAYFA AYARLARI (MOBİL İÇİN ÖNEMLİ) ---
+st.set_page_config(
+    page_title="101 Mobil", 
+    page_icon="💣", 
+    layout="wide", # Ekranı tam kapla
+    initial_sidebar_state="collapsed"
+)
 
-# --- GLOBAL HAFIZA (SUNUCU BELLEĞİ) ---
-# Bu yapı sayesinde veriler herkes için ortaktır.
+# --- GLOBAL HAFIZA ---
 @st.cache_resource
 class GameState:
     def __init__(self):
@@ -15,9 +19,9 @@ class GameState:
 
     def reset(self):
         self.active = False
-        self.players = []     # [{'name': 'Oğuz', 'number': 55, 'status': 'active'}, ...]
-        self.clicked = set()  # Açılan kutular
-        self.taken_numbers = set() # Çakışma kontrolü için
+        self.players = []
+        self.clicked = set()
+        self.taken_numbers = set()
         self.max_num = 101
         self.turn_index = 0
         self.game_over = False
@@ -26,67 +30,106 @@ class GameState:
         self.logs = []
 
     def add_player(self, name, number):
-        # Kontroller
         name = name.strip()
         if not name: return "İsim boş olamaz."
-        if any(p['name'].lower() == name.lower() for p in self.players): return "Bu isim zaten alınmış."
-        if number in self.taken_numbers: return "Bu sayı başkası tarafından seçilmiş!"
-        if not (1 <= number <= self.max_num): return f"Sayı 1-{self.max_num} arasında olmalı."
+        if any(p['name'].lower() == name.lower() for p in self.players): return "İsim alınmış."
+        if number in self.taken_numbers: return "Bu sayı seçildi!"
+        if not (1 <= number <= self.max_num): return f"Sayı 1-{self.max_num} arası olmalı."
         
-        # Oyuncuyu ekle
         self.players.append({'name': name, 'number': number, 'status': 'active'})
         self.taken_numbers.add(number)
-        return None # Hata yoksa None döner
+        return None
 
-# Hafızayı başlat
 if "store" not in st.session_state:
     st.session_state.store = GameState()
-
 store = st.session_state.store
 
-# --- OTOMATİK YENİLEME (CANLI LOBİ) ---
-# 2 saniyede bir sayfayı yeniler ki yeni gelenleri görelim
-st_autorefresh(interval=2000, key="lobby_sync")
+# --- CANLI SENKRONİZASYON ---
+st_autorefresh(interval=2000, key="mobile_sync")
 
-# --- CSS TEMA (WHATSAPP) ---
+# --- MOBİL UYUMLU CSS (SİHİR BURADA) ---
 st.markdown("""
     <style>
+    /* 1. GENEL ZEMİN */
     .stApp { background-color: #ECE5DD; }
-    h1, h2, h3 { color: #075E54; font-family: 'Helvetica', sans-serif; text-align: center; }
     
-    /* Form Alanları */
-    .stTextInput input, .stNumberInput input {
-        border-radius: 10px;
-        border: 1px solid #128C7E;
+    /* 2. GEREKSİZ BOŞLUKLARI SİL (HACK) */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        max-width: 100% !important;
     }
     
-    /* Butonlar */
+    /* 3. BUTONLARI KARE VE BÜYÜK YAP */
     div.stButton > button {
-        background-color: #FFFFFF; color: #4a4a4a; border-radius: 10px;
-        border: none; border-bottom: 2px solid #d1d1d1; font-weight: bold;
-        width: 100%; height: 50px;
+        background-color: #FFFFFF;
+        color: #121212;
+        border-radius: 12px;
+        border: none;
+        border-bottom: 3px solid #cfcfcf; /* 3D Efekt */
+        font-weight: 900;
+        font-size: 18px;
+        width: 100%;
+        aspect-ratio: 1 / 1; /* Kare Oranı */
+        margin-bottom: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    div.stButton > button:hover { background-color: #f0f0f0; color: #075E54; }
-    
-    /* Lobi Kartları */
-    .lobby-card {
-        background-color: white; padding: 10px; border-radius: 10px;
-        margin-bottom: 5px; color: #075E54; font-weight: bold;
-        display: flex; justify-content: space-between; align-items: center;
+    div.stButton > button:active {
+        border-bottom: none;
+        transform: translateY(3px);
+    }
+    div.stButton > button:disabled {
+        background-color: transparent;
+        border: none;
+        color: transparent;
     }
     
-    /* Oyun Kartları */
+    /* 4. OYUNCU KARTLARI */
     .player-card {
-        background-color: white; padding: 10px; border-radius: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center;
-        margin-bottom: 5px; font-weight: bold; color: #121212;
+        background-color: white; 
+        padding: 8px; 
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        text-align: center;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #333;
+        border-left: 5px solid #ccc;
     }
-    .active-turn { border: 3px solid #128C7E; background-color: #DCF8C6; transform: scale(1.05); }
-    .eliminated { background-color: #ffcccc; border: 2px solid #FF3B30; text-decoration: line-through; opacity: 0.7; }
+    .active-turn { 
+        background-color: #dcf8c6; 
+        border-left: 5px solid #25D366;
+        transform: scale(1.02);
+        font-weight: bold;
+    }
+    .eliminated { 
+        background-color: #ffe6e6; 
+        border-left: 5px solid #ff3b30;
+        color: #ff3b30;
+        text-decoration: line-through; 
+    }
+    
+    /* 5. INPUT ALANLARI GÜZELLEŞTİRME */
+    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] {
+        border-radius: 12px;
+        border: 2px solid #128C7E;
+        padding: 10px;
+    }
+    
+    /* 6. BAŞLIKLAR */
+    h1 { font-size: 1.8rem; text-align: center; color: #075E54; margin-bottom: 10px; }
+    .status-bar { text-align: center; font-weight: bold; color: #555; margin-bottom: 10px; }
+
+    /* 7. MOBİLDE GİZLE (Header/Footer) */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
     </style>
 """, unsafe_allow_html=True)
 
-# --- SES ÇALMA ---
+# --- SES ---
 def play_sound():
     try:
         with open("patlama.wav", "rb") as f:
@@ -96,10 +139,9 @@ def play_sound():
             st.markdown(md, unsafe_allow_html=True)
     except: pass
 
-# --- OYUN FONKSİYONLARI ---
+# --- OYUN MANTIĞI ---
 def make_move(number, player_name):
     store.clicked.add(number)
-    
     hit_index = None
     for i, p in enumerate(store.players):
         if p['number'] == number and p['status'] == 'active':
@@ -109,14 +151,13 @@ def make_move(number, player_name):
     if hit_index is not None:
         victim = store.players[hit_index]['name']
         store.players[hit_index]['status'] = 'eliminated'
-        store.logs.append(f"💣 {player_name}, {victim}'i patlattı!")
+        store.logs.append(f"💥 {player_name} -> {victim}")
         
         active_p = [p for p in store.players if p['status'] == 'active']
         if len(active_p) == 1:
             store.game_over = True
             store.loser = active_p[0]['name']
             store.boom_trigger = True
-            store.logs.append(f"🏁 OYUN BİTTİ! Kaybeden: {store.loser}")
     else:
         pass
 
@@ -132,57 +173,47 @@ def make_move(number, player_name):
 # ==========================================
 
 if not store.active:
-    # --- 1. LOBİ EKRANI (HERKES BURADAN KATILIR) ---
-    st.title("💣 101 Lobi")
-    st.info("İsmini ve gizli sayını gir, 'KATIL'a bas ve bekle.")
+    # --- LOBİ ---
+    st.markdown("<h1>💣 101 Lobi</h1>", unsafe_allow_html=True)
     
-    # Oyun Ayarı (Sadece ilk başta görünür, opsiyonel)
     if len(store.players) == 0:
-        store.max_num = st.number_input("Oyun Kaçta Bitsin?", 10, 200, 101)
+        store.max_num = st.number_input("Oyun Limiti", 10, 200, 101)
     
-    st.divider()
-    
-    # Katılım Formu
     c1, c2 = st.columns([2, 1])
-    join_name = c1.text_input("İsminiz")
-    join_num = c2.number_input("Gizli Sayın", 1, store.max_num, step=1) # number_input mobilde klavye açtığı için daha iyi
+    join_name = c1.text_input("İsim", placeholder="Adın ne?")
+    join_num = c2.number_input("Sayı", 1, store.max_num, step=1, label_visibility="visible") 
     
-    if st.button("👥 OYUNA KATIL"):
+    if st.button("K A T I L", type="primary", use_container_width=True):
         err = store.add_player(join_name, int(join_num))
-        if err:
-            st.error(err)
-        else:
-            st.success("Katıldın! Diğerlerini bekle...")
-            st.rerun()
+        if err: st.error(err)
+        else: st.rerun()
 
-    st.markdown("### 🟢 Bekleyen Oyuncular")
+    st.markdown("---")
+    st.markdown(f"<div class='status-bar'>Bekleyenler: {len(store.players)} Kişi</div>", unsafe_allow_html=True)
     
-    # Bekleyenleri Listele
-    if len(store.players) == 0:
-        st.write("Henüz kimse yok...")
-    else:
-        for p in store.players:
-            st.markdown(f"""
-            <div class="lobby-card">
-                <span>👤 {p['name']}</span>
-                <span>🔒 Sayı Girildi</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-    st.divider()
+    # Bekleyenleri şık kartlarla göster
+    if store.players:
+        cols = st.columns(2) # Mobilde yan yana 2 kişi
+        for i, p in enumerate(store.players):
+            with cols[i % 2]:
+                st.markdown(f"""
+                <div class="player-card" style="border-left: 5px solid #128C7E;">
+                    👤 {p['name']} <br> 🔒 Hazır
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.markdown("---")
     
-    # Başlatma Butonu (En az 2 kişi varsa görünür)
     if len(store.players) >= 2:
-        if st.button("🚀 HERKES HAZIRSA BAŞLAT", type="primary"):
+        if st.button("🚀 BAŞLAT", type="primary", use_container_width=True):
             store.active = True
             store.logs.append("Oyun Başladı!")
             st.rerun()
     else:
-        st.caption("Başlamak için en az 2 kişi bekleniyor...")
+        st.info("En az 2 kişi bekleniyor...")
 
 else:
-    # --- 2. OYUN EKRANI (HERKES AYNI ANDA OYNAR) ---
-    
+    # --- OYUN EKRANI ---
     if store.boom_trigger:
         play_sound()
         time.sleep(1)
@@ -191,39 +222,39 @@ else:
     if store.game_over:
         st.balloons()
         st.markdown(f"""
-        <div style="background-color: #075E54; color: white; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px;">
-            <h1>OYUN BİTTİ!</h1>
-            <h2 style="color:#FFD700">Kaybeden: {store.loser}</h2>
-            <p>Hesaplar ona ait!</p>
+        <div style="background-color: #075E54; color: white; padding: 30px; border-radius: 20px; text-align: center; margin-top: 50px;">
+            <h1 style="color:white; font-size: 3rem;">KAYBEDEN</h1>
+            <h2 style="color:#FFD700; font-size: 2.5rem; text-transform: uppercase;">{store.loser}</h2>
+            <p>Hesaplar Onda!</p>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("♻️ YENİ OYUN KUR"):
+        st.write("")
+        if st.button("♻️ LOBİYE DÖN", type="secondary", use_container_width=True):
             store.reset()
             st.rerun()
             
     else:
-        # Kimlik Seçimi (Tarayıcı hafızasında tutulmaz, her girişte seçilir)
-        # Bu basit yöntem, karmaşık kullanıcı giriş sistemlerinden kurtarır.
-        st.title(f"💣 101 (Limit: {store.max_num})")
-        
+        # KİMLİK SEÇİMİ (MOBİL İÇİN SELECTBOX EN İYİSİDİR)
         player_names = [p['name'] for p in store.players]
-        my_identity = st.selectbox("Ben Kimim?", ["Seçiniz..."] + player_names)
+        # Label'ı gizle, placeholder kullan
+        my_identity = st.selectbox("Ben Kimim?", ["Seçiniz..."] + player_names, label_visibility="collapsed")
         
         if my_identity == "Seçiniz...":
-            st.warning("Lütfen yukarıdan isminizi seçin!")
-            st.stop() # İsim seçmeden aşağıyı gösterme
+            st.warning("👆 Önce yukarıdan ismini seç!")
+            st.stop()
             
         current_player_name = store.players[store.turn_index]['name']
         
-        # Sıra Bilgisi
+        # SIRA BİLGİSİ
         if my_identity == current_player_name:
-            st.success(f"SIRA SENDE, {my_identity.upper()}! BİR KUTU SEÇ.")
+            st.success(f"🟢 SIRA SENDE! BİR KUTU SEÇ.")
         else:
-            st.info(f"SIRA: {current_player_name}")
+            st.info(f"⏳ SIRA: {current_player_name}")
 
-        # Oyuncu Kartları
-        cols = st.columns(4)
+        # OYUNCU KARTLARI (MOBİL İÇİN 2 SÜTUN)
+        # 4 sütun mobilde çok sıkışır, 2 idealdir.
+        p_cols = st.columns(2)
         for i, p in enumerate(store.players):
             css = "player-card"
             stat = "Online"
@@ -232,17 +263,21 @@ else:
                 stat = "ELENDİ"
             elif i == store.turn_index:
                 css += " active-turn"
-                stat = "Yazıyor..."
+                stat = "YAZIYOR..."
                 
-            with cols[i % 4]:
-                st.markdown(f"""<div class="{css}"><div>{p['name']}</div><small>{stat}</small></div>""", unsafe_allow_html=True)
+            with p_cols[i % 2]:
+                st.markdown(f"""
+                <div class="{css}">
+                    <div>{p['name']}</div>
+                    <div style="font-size:10px; color:#666;">{stat}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        if store.logs:
-            st.caption(f"Son Olay: {store.logs[-1]}")
-        
-        st.divider()
+        st.markdown("---")
 
-        # Sayı Tablosu
+        # SAYI TABLOSU (GRID)
+        # Mobilde en rahat basılan oran 4 sütundur. 5 bazen parmak kalınsa zorlar.
+        # Ama 101 sayısı için 5 daha simetrik. Butonları kare yaptığımız için 5 de kurtarır.
         grid_cols = 5
         btn_cols = st.columns(grid_cols)
         
@@ -251,16 +286,16 @@ else:
             col = btn_cols[c_idx]
             
             if i in store.clicked:
-                owner = None
-                for p in store.players:
-                    if p['number'] == i:
-                        owner = p
-                        break
-                if owner: col.error("💥")
-                else: col.empty()
+                # Tıklananları kontrol et
+                owner = next((p for p in store.players if p['number'] == i), None)
+                if owner:
+                    col.error("💥") # Patlama ikonu
+                else:
+                    # Boş buton (Görünmez ama yer kaplar)
+                    col.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True)
             else:
                 is_my_turn = (my_identity == current_player_name)
-                # Buton ID'si unique olmalı
+                # Buton oluştur
                 if col.button(str(i), key=f"b{i}", disabled=not is_my_turn):
                     make_move(i, my_identity)
                     st.rerun()
