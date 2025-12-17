@@ -5,7 +5,7 @@ from streamlit_autorefresh import st_autorefresh
 
 # --- SAYFA AYARLARI ---
 st.set_page_config(
-    page_title="101 Lobi", 
+    page_title="101", 
     page_icon="💣", 
     layout="centered", 
     initial_sidebar_state="collapsed"
@@ -17,7 +17,7 @@ st.set_page_config(
 class GameRoom:
     def __init__(self, room_name, max_num, admin_name):
         self.name = room_name
-        self.admin_name = admin_name # Masayı kuran kişi
+        self.admin_name = admin_name
         self.active = False
         self.players = []
         self.clicked = set()
@@ -70,17 +70,11 @@ class GameRoom:
 class RoomManager:
     def __init__(self):
         self.rooms = {} 
-    # Oda kurarken artık admin ismini de alıyoruz
     def create_room(self, room_name, max_num, admin_name, admin_num):
         if room_name in self.rooms: return False, "Bu isim dolu!"
-        
-        # Odayı oluştur
         new_room = GameRoom(room_name, max_num, admin_name)
-        
-        # Admini otomatik oyuncu olarak ekle
         err = new_room.add_player(admin_name, admin_num)
         if err: return False, err
-        
         self.rooms[room_name] = new_room
         return True, "Oluşturuldu."
 
@@ -89,7 +83,7 @@ if "manager" not in st.session_state:
 if "current_room_id" not in st.session_state:
     st.session_state.current_room_id = None
 if "my_identity" not in st.session_state:
-    st.session_state.my_identity = None # Kimliğimi hafızada tut
+    st.session_state.my_identity = None
 
 manager = st.session_state.manager
 st_autorefresh(interval=2000, key="sync")
@@ -104,80 +98,66 @@ def play_sound():
     except: pass
 
 # ==========================================
-#          2. CSS (KOMPAKT & GÖRÜNÜR)
+#          2. CSS (MİNİMALİST & KÜÇÜK)
 # ==========================================
 st.markdown("""
     <style>
-    /* 1. GENEL AYARLAR */
     .stApp { background-color: #ECE5DD; color: #121212; }
     
-    /* 2. EKRAN ORTALAMA (TELEFON MODU) */
+    /* EKRAN GENİŞLİĞİ VE KENAR BOŞLUKLARI */
     .block-container {
-        max-width: 500px !important;
+        max-width: 450px !important; /* Ekranı iyice daralttım */
         padding-top: 1rem !important;
-        padding-bottom: 3rem !important;
+        padding-bottom: 2rem !important;
         padding-left: 0.5rem !important;
         padding-right: 0.5rem !important;
         margin: auto !important;
     }
 
-    /* 3. INPUTLAR (Küçük ve Kibar) */
-    .stTextInput input, .stNumberInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #ccc !important;
-        border-radius: 6px !important;
-        height: 40px !important;
-        min-height: 40px !important;
-        font-size: 14px !important;
-    }
-
-    /* 4. OYUN KUTUCUKLARI (KOMPAKT) */
+    /* OYUN BUTONLARI (MİNİK) */
     div.stButton > button {
         background-color: #FFFFFF;
         color: #121212;
+        border: 1px solid #ccc;
         border-radius: 4px;
-        border: 1px solid #bbb;
-        border-bottom: 2px solid #999;
         font-weight: 700;
-        font-size: 14px !important; /* Yazı boyutu ideal */
+        font-size: 12px !important; /* Yazı boyutu MİNİ */
         width: 100%;
-        height: 50px !important; /* Sabit yükseklik, kare zorlaması yok */
+        height: 35px !important;    /* Yükseklik SABİT ve KISA */
+        min-height: 0px !important;
         padding: 0 !important;
         margin: 0 !important;
+        line-height: 1;
         box-shadow: 0 1px 1px rgba(0,0,0,0.1);
     }
     div.stButton > button:active {
-        border-bottom: 0px;
-        transform: translateY(2px);
-        background-color: #e0e0e0;
+        background-color: #ddd;
+        border-color: #bbb;
     }
     div.stButton > button:disabled {
-        background-color: transparent;
-        border: none;
-        color: transparent;
-        box-shadow: none;
+        background-color: transparent; border: none; color: transparent; box-shadow: none;
     }
 
-    /* 5. SEKMELER (TABS) */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { height: 40px; padding: 0 20px; }
+    /* NORMAL BUTONLAR (BAŞLAT VB) - Bunlar biraz daha belirgin olsun */
+    .normal-btn button {
+        height: 40px !important;
+        font-size: 14px !important;
+    }
 
-    /* 6. GRID AYARLARI (SIKIŞIK) */
+    /* IZGARA BOŞLUKLARI */
     [data-testid="stHorizontalBlock"] { gap: 2px !important; }
     [data-testid="column"] { padding: 0 !important; min-width: 0 !important; }
 
-    /* 7. OYUNCU KARTLARI */
+    /* OYUNCU KARTLARI */
     .player-card {
         background: white; border: 1px solid #ddd; border-radius: 4px; 
-        text-align: center; font-size: 11px; padding: 3px;
+        text-align: center; font-size: 11px; padding: 2px;
         white-space: nowrap; overflow: hidden; margin-bottom: 2px;
-        color: #333;
     }
-    .active-turn { background: #dcf8c6; border: 1px solid #25D366; font-weight:bold; }
+    .active-turn { background: #dcf8c6; border: 1px solid #25D366; }
     .eliminated { background: #ffebeb; border: 1px solid #ff3b30; text-decoration: line-through; opacity: 0.6; }
     
-    /* GİZLEME */
-    header, footer {visibility: hidden;}
+    header, footer {display: none !important;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -192,63 +172,53 @@ else:
     st.session_state.current_room_id = None
     st.session_state.my_identity = None
 
-# --- 1. ANA MENÜ (LOBI) ---
+# --- LOBI ---
 if current_room is None:
-    st.markdown("<h3 style='text-align:center; color:#075E54; margin-top:0;'>💣 101 Lobi</h3>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align:center; color:#075E54; margin:0;'>💣 101</h4>", unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["GİRİŞ", "YENİ MASA"])
+    tab1, tab2 = st.tabs(["GİRİŞ", "MASA KUR"])
     
     with tab1:
-        if not manager.rooms:
-            st.info("Masa yok.")
+        if not manager.rooms: st.info("Masa yok.")
         else:
             room_list = list(manager.rooms.keys())
             selected_room = st.selectbox("Masa Seç", room_list)
             if st.button("Masaya Otur", type="primary"):
                 st.session_state.current_room_id = selected_room
                 st.rerun()
-
     with tab2:
-        st.markdown("**Masa & Yönetici Ayarları**")
         c1, c2 = st.columns(2)
-        new_room_name = c1.text_input("Masa Adı", placeholder="Örn: Salon")
+        new_room_name = c1.text_input("Masa Adı", placeholder="Masa")
         new_room_limit = c2.number_input("Limit", 10, 200, 101)
         
-        st.markdown("**Senin Bilgilerin (Admin)**")
-        admin_name = st.text_input("Adın", placeholder="Admin")
-        admin_num = st.number_input("Gizli Sayın", 1, new_room_limit)
+        c3, c4 = st.columns(2)
+        admin_name = c3.text_input("Adın", placeholder="Sen")
+        admin_num = c4.number_input("Sayın", 1, new_room_limit)
         
-        if st.button("OLUŞTUR VE GİR", type="secondary"):
+        if st.button("OLUŞTUR", type="secondary"):
             if new_room_name and admin_name:
                 success, msg = manager.create_room(new_room_name, new_room_limit, admin_name, int(admin_num))
                 if success:
                     st.session_state.current_room_id = new_room_name
-                    st.session_state.my_identity = admin_name # Admin otomatik kimlik seçmiş olur
+                    st.session_state.my_identity = admin_name
                     st.rerun()
                 else: st.error(msg)
-            else:
-                st.error("Masa adı ve ismin gerekli.")
 
-# --- 2. OYUN ODASI ---
+# --- OYUN ---
 else:
     # Üst Bar
-    c1, c2 = st.columns([1, 5])
+    c1, c2 = st.columns([1, 6])
     with c1:
-        if st.button("⬅️"):
-            st.session_state.current_room_id = None
-            st.session_state.my_identity = None
-            st.rerun()
+        if st.button("🔙"):
+            st.session_state.current_room_id = None; st.session_state.my_identity = None; st.rerun()
     with c2:
-        st.markdown(f"<h4 style='margin:0; padding-top:8px; color:#075E54;'>{current_room.name}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h5 style='margin:0; padding-top:8px; color:#075E54;'>{current_room.name}</h5>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<hr style='margin: 5px 0;'>", unsafe_allow_html=True)
 
-    # A. OYUN BAŞLAMADIYSA
+    # OYUN BAŞLAMADIYSA
     if not current_room.active:
-        
-        # Eğer kimliğim belli değilse (Sonradan girenler için)
         if st.session_state.my_identity not in [p['name'] for p in current_room.players]:
-             st.markdown("#### 👋 Katıl")
              join_name = st.text_input("İsim")
              join_num = st.number_input("Gizli Sayı", 1, current_room.max_num)
              if st.button("Hazırım", type="primary"):
@@ -258,35 +228,23 @@ else:
                      st.session_state.my_identity = join_name
                      st.rerun()
         else:
-            st.success(f"✅ Hazırsın: {st.session_state.my_identity}")
+            st.success(f"Bekleniyor: {len(current_room.players)} Kişi")
 
-        st.caption(f"Bekleyenler: {len(current_room.players)}")
-        
-        # Bekleyen Listesi
         if current_room.players:
             cols = st.columns(3)
             for i, p in enumerate(current_room.players):
                 with cols[i % 3]:
-                    # Admin ikonlu göster
-                    icon = "👑 " if p['name'] == current_room.admin_name else "👤 "
+                    icon = "👑 " if p['name'] == current_room.admin_name else ""
                     st.markdown(f"<div class='player-card'>{icon}{p['name']}</div>", unsafe_allow_html=True)
         
-        st.write("")
-        
-        # SADECE ADMIN BAŞLATABİLİR KONTROLÜ
-        if st.session_state.my_identity == current_room.admin_name:
-            if len(current_room.players) >= 2:
-                if st.button("🚀 OYUNU BAŞLAT", type="secondary"):
-                    current_room.active = True
-                    current_room.logs.append("Oyun Başladı!")
-                    st.rerun()
-            else:
-                st.info("Başlamak için en az 2 kişi lazım.")
-        else:
-            if current_room.players:
-                st.info(f"⏳ Yönetici ({current_room.admin_name}) bekleniyor...")
+        if st.session_state.my_identity == current_room.admin_name and len(current_room.players) >= 2:
+            st.write("")
+            if st.button("🚀 OYUNU BAŞLAT"):
+                current_room.active = True
+                current_room.logs.append("Başladı!")
+                st.rerun()
 
-    # B. OYUN BAŞLADIYSA
+    # OYUN BAŞLADIYSA
     else:
         if current_room.boom_trigger:
             play_sound()
@@ -294,63 +252,36 @@ else:
             current_room.boom_trigger = False
 
         if current_room.game_over:
-            st.balloons()
-            st.markdown(f"""
-            <div style="background: white; border: 2px solid red; border-radius: 10px; padding: 20px; text-align: center;">
-                <h3 style="color: red; margin:0;">KAYBEDEN</h3>
-                <h1 style="color: #333; margin:10px;">{current_room.loser}</h1>
-                <p>Hesaplar Onda!</p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.write("")
-            
-            # Sadece Admin Resetleyebilir
+            st.error(f"KAYBEDEN: {current_room.loser}")
             if st.session_state.my_identity == current_room.admin_name:
-                if st.button("YENİ TUR BAŞLAT"):
-                    # Odayı yeniden kur (Aynı ayarlarla)
-                    manager.create_room(current_room.name, current_room.max_num, current_room.admin_name, 1) # Sayı temsili resetlenir
-                    # Resetleme mantığı biraz karmaşık olduğu için burada basitçe odayı sıfırlayıp lobiye atıyoruz
-                    current_room.active = False
-                    current_room.players = [] 
-                    current_room.clicked = set()
-                    current_room.taken_numbers = set()
-                    # Admini tekrar eklemek lazım ama basitlik için lobiye dönüyoruz
+                if st.button("YENİ TUR"):
+                    manager.create_room(current_room.name, current_room.max_num, current_room.admin_name, 1)
                     st.rerun()
-            else:
-                st.info("Yönetici yeni oyunu kurabilir.")
         else:
-            # Kimlik Doğrulama (Otomatik)
             my_id = st.session_state.my_identity
-            
-            # Eğer kimlik düşmüşse (sayfa yenileme vb) tekrar seçtir
-            if not my_id or my_id not in [p['name'] for p in current_room.players]:
-                p_names = ["Seçiniz"] + [p['name'] for p in current_room.players]
-                my_id = st.selectbox("Sen Kimsin?", p_names)
-                if my_id != "Seçiniz":
-                    st.session_state.my_identity = my_id
-                    st.rerun()
+            if not my_id:
+                p_names = ["Seç"] + [p['name'] for p in current_room.players]
+                my_id = st.selectbox("", p_names)
+                if my_id != "Seç": st.session_state.my_identity = my_id; st.rerun()
             
             curr_p = current_room.players[current_room.turn_index]['name']
             
-            if my_id == curr_p:
-                st.success("🟢 SIRA SENDE!")
-            else:
-                st.info(f"⏳ SIRA: {curr_p}")
+            if my_id == curr_p: st.success("SIRA SENDE!")
+            else: st.info(f"Sıra: {curr_p}")
 
-            # Oyuncu Kartları (Kompakt 4 Sütun)
             p_cols = st.columns(4)
             for i, p in enumerate(current_room.players):
                 css = "player-card"
                 if p['status'] == 'eliminated': css += " eliminated"
                 elif i == current_room.turn_index: css += " active-turn"
-                with p_cols[i % 4]:
-                    st.markdown(f"<div class='{css}'>{p['name']}</div>", unsafe_allow_html=True)
+                with p_cols[i % 4]: st.markdown(f"<div class='{css}'>{p['name']}</div>", unsafe_allow_html=True)
 
             st.write("") 
 
-            # OYUN GRİDİ (5 SÜTUN - DAHA KOMPAKT)
-            # 5 Sütun 101 oyunu için idealdir (20 satır eder, 4 sütun 25 satır çok uzun oluyor)
-            GRID_COLS = 5
+            # --- SIKIŞTIRILMIŞ IZGARA (6 SÜTUN) ---
+            # 6 Sütun = Daha dar butonlar
+            # Yükseklik = 35px sabitlendi (CSS'de)
+            GRID_COLS = 6 
             btn_cols = st.columns(GRID_COLS)
             
             for i in range(1, current_room.max_num + 1):
@@ -359,14 +290,11 @@ else:
                 
                 if i in current_room.clicked:
                     owner = next((p for p in current_room.players if p['number'] == i), None)
-                    if owner:
-                        col.error("💥")
-                    else:
-                        # Boş kutu
-                        col.markdown("<div style='height:100%; width:100%; min-height:40px;'></div>", unsafe_allow_html=True)
+                    if owner: col.error("💥")
+                    else: col.markdown("<div style='height:35px;'></div>", unsafe_allow_html=True)
                 else:
                     is_turn = (my_id == curr_p)
-                    # use_container_width=True ile kutucuklar genişliğe yayılır
-                    if col.button(str(i), key=f"btn_{i}", disabled=not is_turn, use_container_width=True):
+                    # use_container_width=True KULLANMIYORUZ. CSS ile genişletiyoruz.
+                    if col.button(str(i), key=f"btn_{i}", disabled=not is_turn):
                         current_room.make_move(i, my_id)
                         st.rerun()
